@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+out
+build
+dist
+.env
+.env.local
+.env.*

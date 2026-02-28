@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CLUB
+  STUDENT
+}
+
+enum ClubStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum MembershipRole {
+  member
+  president
+  officer
+}
+
+enum MembershipStatus {
+  pending
+  accepted
+  rejected
+}
+
+enum JoinRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          UserRole       @default(STUDENT)
+  // NextAuth compatibility fields
+  emailVerified DateTime?
+  image         String?
+
+  clubsAsPresident Club[]      @relation("ClubPresident")
+  memberships      Membership[]
+  posts            Post[]      @relation("PostAuthor")
+  joinRequests     JoinRequest[]
+  notifications    Notification[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Club {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String
+  category    String
+  logoUrl     String?
+  status      ClubStatus    @default(PENDING)
+  schedule    String?
+
+  president   User          @relation("ClubPresident", fields: [presidentId], references: [id])
+  presidentId String
+
+  memberships Membership[]
+  posts       Post[]
+  joinRequests JoinRequest[]
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Membership {
+  user   User            @relation(fields: [userId], references: [id])
+  userId String
+
+  club   Club            @relation(fields: [clubId], references: [id])
+  clubId String
+
+  role   MembershipRole  @default(member)
+  status MembershipStatus @default(pending)
+
+  createdAt DateTime      @default(now())
+
+  @@id([userId, clubId])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+
+  club      Club     @relation(fields: [clubId], references: [id])
+  clubId    String
+
+  author    User     @relation("PostAuthor", fields: [authorId], references: [id])
+  authorId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model JoinRequest {
+  id        String            @id @default(cuid())
+  club      Club              @relation(fields: [clubId], references: [id])
+  clubId    String
+  user      User              @relation(fields: [userId], references: [id])
+  userId    String
+  status    JoinRequestStatus @default(pending)
+  createdAt DateTime          @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
